@@ -1,0 +1,17 @@
+--- a/include/sound/core.h
++++ b/include/sound/core.h
+@@ -134,6 +134,14 @@
+ 	const struct attribute_group *dev_groups[4]; /* assigned sysfs attr */
+ 	bool registered;		/* card_dev is registered? */
+ 	wait_queue_head_t remove_sleep;
++	/*
++	 * 运行内核（Rockchip kernel-4.19）在 remove_sleep 之后多出这三个
++	 * 字段（离线状态支持），使 sizeof(struct snd_card) 为 2920 字节
++	 * （我们原先为 2856）。位于 card_dev 之后，不影响卡设备偏移。
++	 */
++	int offline;			/* if this sound card is offline */
++	unsigned long offline_change;
++	wait_queue_head_t offline_poll_wait;
+ 
+ #ifdef CONFIG_PM
+ 	unsigned int power_state;	/* power state */

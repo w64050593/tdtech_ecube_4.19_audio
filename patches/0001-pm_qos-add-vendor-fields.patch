@@ -1,0 +1,41 @@
+--- a/include/linux/pm_qos.h
++++ b/include/linux/pm_qos.h
+@@ -9,6 +9,8 @@
+ #include <linux/notifier.h>
+ #include <linux/device.h>
+ #include <linux/workqueue.h>
++#include <linux/cpumask.h>
++#include <linux/interrupt.h>
+ 
+ enum {
+ 	PM_QOS_RESERVED = 0,
+@@ -44,7 +46,29 @@
+ 
+ #define PM_QOS_FLAG_NO_POWER_OFF	(1 << 0)
+ 
++/*
++ * 运行内核（Rockchip kernel-4.19）在此比主线多出 type/cpus_affine/irq/
++ * irq_notify 四个成员。dscan3 实测：snd_pcm_substream 的 link_list 位于
++ * +480（主线布局为 +360），差值 120 = pm_qos_request 多出的 96 字节
++ * + 下方 snd_pcm_substream.runtime_lock 的 24 字节。必须与运行内核一致，
++ * 否则 substream 后续字段全部错位。
++ */
++enum pm_qos_req_type {
++	PM_QOS_REQ_ALL_CORES = 0,
++	PM_QOS_REQ_AFFINE_CORES,
++#ifdef CONFIG_SMP
++	PM_QOS_REQ_AFFINE_IRQ,
++#endif
++};
++
+ struct pm_qos_request {
++	enum pm_qos_req_type type;
++	struct cpumask cpus_affine;
++#ifdef CONFIG_SMP
++	uint32_t irq;
++	/* Internal structure members */
++	struct irq_affinity_notify irq_notify;
++#endif
+ 	struct plist_node node;
+ 	int pm_qos_class;
+ 	struct delayed_work work; /* for pm_qos_update_request_timeout */

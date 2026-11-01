@@ -1,0 +1,16 @@
+--- a/include/linux/rwsem.h
++++ b/include/linux/rwsem.h
+@@ -42,6 +42,13 @@
+ #ifdef CONFIG_DEBUG_LOCK_ALLOC
+ 	struct lockdep_map	dep_map;
+ #endif
++	/*
++	 * 运行内核（Rockchip kernel-4.19）保留了 vendor 的 m_count 字段
++	 * （CONFIG_RWSEM_PRIO_AWARE），使 struct rw_semaphore 为 72 字节。
++	 * 实测运行内核 struct snd_card 的 card_dev 位于 +1704，而我们原先
++	 * 编译出 +1696，差值 8 字节正来自这里（controls_rwsem 在 card_dev 之前）。
++	 */
++	long m_count;
+ };
+ 
+ /*

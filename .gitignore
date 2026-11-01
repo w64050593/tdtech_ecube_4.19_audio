@@ -1,0 +1,14 @@
+# 编译中间产物
+*.o
+*.mod
+*.mod.c
+*.order
+*.symvers
+.*.cmd
+.tmp_versions/
+
+# 脚本输出目录
+out/
+
+# 探针模块的构建产物（源码保留）
+tools/abi-probe/*.ko
