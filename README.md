@@ -38,6 +38,11 @@ tdtech_ecube_4.19_audio/
 │   ├── 0003-snd-card-add-offline-fields.patch
 │   └── 0004-pcm-sync-vendor-layout.patch
 ├── tools/abi-probe/            运行内核 ABI 探针（insmod 打印真实布局）
+├── deploy/
+│   ├── etc/modules-load.d/ecube-usb-audio.conf   开机自动加载配置
+│   ├── etc/modprobe.d/ecube-usb-audio.conf       可选的 modprobe 参数
+│   └── install-autoload.sh                       一键安装自动加载配置
+├── docs/AUTOLOAD.md            模块开机自动加载配置与使用说明
 ├── scripts/build.sh            交叉编译脚本
 └── scripts/install.sh          目标设备安装脚本
 ```
@@ -349,7 +354,35 @@ amixer -c 1 sset 'Speaker' 100%
 
 ---
 
-## 9. 针对 Rockchip（vendor kernel 4.19）的编译经验总结
+## 9. 开机自动加载
+
+模块安装好、`depmod -a` 之后，用 systemd 的 `modules-load.d` 固定开机加载：
+
+```sh
+./deploy/install-autoload.sh
+```
+
+它会安装：
+
+- `/etc/modules-load.d/ecube-usb-audio.conf` —— 内容只有一行 `snd-usb-audio`，
+  依赖由 `modprobe` 按 `modules.dep` 自动解析
+- `/etc/modprobe.d/ecube-usb-audio.conf` —— 可选参数（固定 `index`、`softdep` 顺序等，默认注释）
+
+验证：
+
+```sh
+lsmod | grep -i snd
+cat /proc/asound/cards
+systemctl status systemd-modules-load --no-pager
+journalctl -b -u systemd-modules-load --no-pager | tail
+```
+
+完整的配置方式（`modules-load.d` / Debian `/etc/modules` / `modprobe.d` 参数 /
+udev 自动匹配）、排错与关闭方法见 [docs/AUTOLOAD.md](docs/AUTOLOAD.md)。
+
+---
+
+## 10. 针对 Rockchip（vendor kernel 4.19）的编译经验总结
 
 1. **头文件必须跟随设备实际运行的 vendor 源码树**，不要拿主线头文件“猜”。
    本项目就是主线源码 + 厂商 `.config`，`.config` 对了但头文件不对，一样会崩。
@@ -403,7 +436,7 @@ amixer -c 1 sset 'Speaker' 100%
 
 ---
 
-## 10. 常见错误速查
+## 11. 常见错误速查
 
 | 现象 | 根因 | 处理 |
 |---|---|---|
@@ -417,7 +450,7 @@ amixer -c 1 sset 'Speaker' 100%
 
 ---
 
-## 11. 文件校验
+## 12. 文件校验
 
 ```
 8d68309f56ccbc1ef132071b4bf0cad0  ko/snd-hwdep.ko
@@ -429,7 +462,7 @@ a67e04a8489095656a59d62608bb98e1  ko/snd-usbmidi-lib.ko
 
 ---
 
-## 12. 说明
+## 13. 说明
 
 - 模块遵循内核 GPL-2.0 许可（`MODULE_LICENSE("GPL")`）。
 - `headers/` 与 `patches/` 仅用于**匹配该型号设备运行内核**的 ABI；
